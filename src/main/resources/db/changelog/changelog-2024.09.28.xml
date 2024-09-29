@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="1_create_category_table" author="Quang Nguyen">
+        <createTable tableName="category">
+            <column name="category_id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="category_name" type="VARCHAR(50)">
+                    <constraints unique="true" nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="2_create_color_table" author="Quang Nguyen">
+        <createTable tableName="color">
+            <column name="color_id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="hex_code" type="CHAR(6)">
+                    <constraints unique="true" nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="3_create_product_table" author="Quang Nguyen">
+        <createTable tableName="product">
+            <column name="product_id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(200)">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="price" type="DECIMAL(10,2)">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="thumbnail_url" type="TEXT"/>
+            <column name="category_id" type="BIGINT">
+                    <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="product"
+                                 baseColumnNames="category_id"
+                                 constraintName="fk_product_category"
+                                 referencedTableName="category"
+                                 referencedColumnNames="category_id"
+        />
+    </changeSet>
+
+    <changeSet id="4_create_discount_offer_table" author="Quang Nguyen">
+        <createTable tableName="discount_offer">
+            <column name="discount_offer_id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="product_id" type="BIGINT">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="discount_type" type="VARCHAR(20)">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="discount_value" type="DECIMAL(10,2)">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="start_date" type="TIMESTAMP WITH TIMEZONE">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="end_date" type="TIMESTAMP WITH TIMEZONE">
+                    <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="discount_offer"
+                                 baseColumnNames="product_id"
+                                 constraintName="fk_discount_offer_product"
+                                 referencedTableName="product"
+                                 referencedColumnNames="product_id"
+        />
+    </changeSet>
+
+    <changeSet id="5_create_product_variant_table" author="Quang Nguyen">
+        <createTable tableName="product_variant">
+            <column name="product_variant_id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="product_id" type="BIGINT">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="color_id" type="BIGINT">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="size" type="VARCHAR(20)">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="stock_count" type="INTEGER">
+                    <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="product_variant"
+                                 baseColumnNames="product_id"
+                                 constraintName="fk_product_variant_product"
+                                 referencedTableName="product"
+                                 referencedColumnNames="product_id"
+        />
+        <addForeignKeyConstraint baseTableName="product_variant"
+                                 baseColumnNames="color_id"
+                                 constraintName="fk_product_variant_color"
+                                 referencedTableName="color"
+                                 referencedColumnNames="color_id"
+        />
+    </changeSet>
+
+    <changeSet id="6_create_product_image_table" author="Quang Nguyen">
+        <createTable tableName="product_image">
+            <column name="product_image_id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="image_url" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="product_variant_id" type="BIGINT">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="position" type="INTEGER">
+                    <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="product_image"
+                                 baseColumnNames="product_variant_id"
+                                 constraintName="fk_product_image_product_variant"
+                                 referencedTableName="product_variant"
+                                 referencedColumnNames="product_variant_id"
+        />
+        <addUniqueConstraint tableName="product_image"
+                             columnNames="product_variant_id, position"
+                             constraintName="unique_product_variant_id_position"
+        />
+    </changeSet>
+
+    <changeSet id="7_create_style_table" author="Quang Nguyen">
+        <createTable tableName="style">
+            <column name="style_id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(50)">
+                    <constraints unique="true" nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="8_create_style_product_table" author="Quang Nguyen">
+        <createTable tableName="style_product">
+            <column name="style_product_id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="style_id" type="BIGINT">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="product_id" type="BIGINT">
+                    <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="style_product"
+                                 baseColumnNames="style_id"
+                                 constraintName="fk_style_product_style"
+                                 referencedTableName="style"
+                                 referencedColumnNames="style_id"
+        />
+        <addForeignKeyConstraint baseTableName="style_product"
+                                 baseColumnNames="product_id"
+                                 constraintName="fk_style_product_product"
+                                 referencedTableName="product"
+                                 referencedColumnNames="product_id"
+        />
+    </changeSet>
+
+    <changeSet id="9_create_user_table" author="Quang Nguyen">
+        <createTable tableName="user">
+            <column name="user_id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="phone_number" type="VARCHAR(20)">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="email" type="VARCHAR(50)">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="password" type="TEXT">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="first_name" type="TEXT">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="last_name" type="TEXT">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="role" type="VARCHAR(20)">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)">
+                    <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="create_product_review_table" author="Quang Nguyen">
+        <createTable tableName="product_review">
+            <column name="product_review_id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="product_id" type="BIGINT">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="rating" type="INTEGER">
+                    <constraints nullable="false"/>
+            </column>
+            <column name="comment" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMP WITH TIMEZONE">
+                    <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="product_review"
+                                 baseColumnNames="product_id"
+                                 constraintName="fk_product_review_product"
+                                 referencedTableName="product"
+                                 referencedColumnNames="product_id"
+        />
+        <addForeignKeyConstraint baseTableName="product_review"
+                                 baseColumnNames="user_id"
+                                 constraintName="fk_product_review_user"
+                                 referencedTableName="user"
+                                 referencedColumnNames="user_id"
+        />
+    </changeSet>
+
+</databaseChangeLog>
