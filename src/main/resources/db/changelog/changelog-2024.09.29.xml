@@ -7,4 +7,12 @@
     <changeSet id="11" author="Quang Nguyen">
         <renameColumn tableName="category" oldColumnName="category_name" newColumnName="name" />
     </changeSet>
+
+    <changeSet id="12_add_column_created_date_product" author="Quang Nguyen">
+        <addColumn tableName="product">
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                    <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

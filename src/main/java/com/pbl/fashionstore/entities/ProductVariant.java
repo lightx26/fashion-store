@@ -22,6 +22,7 @@ public class ProductVariant {
     private Long colorId;
 
     @Column(name = "size")
+    @Enumerated(EnumType.STRING)
     private ProductSize size;
 
     @Column(name = "stock_count")
