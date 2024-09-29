@@ -1,6 +1,5 @@
 package com.pbl.fashionstore.entities;
 
-import com.pbl.fashionstore.enums.ProductSize;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -21,9 +20,8 @@ public class ProductVariant {
     @Column(name = "color_id")
     private Long colorId;
 
-    @Column(name = "size")
-    @Enumerated(EnumType.STRING)
-    private ProductSize size;
+    @Column(name = "size_id")
+    private Long sizeId;
 
     @Column(name = "stock_count")
     private Integer stockCount;

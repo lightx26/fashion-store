@@ -15,4 +15,35 @@
             </column>
         </addColumn>
     </changeSet>
+
+    <changeSet id="13_create_size_table" author="Quang Nguyen">
+        <createTable tableName="size">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="label" type="VARCHAR(20)">
+                <constraints unique="true" nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="14_rename_id_column_size" author="Quang Nguyen">
+        <renameColumn tableName="size" oldColumnName="id" newColumnName="size_id"/>
+    </changeSet>
+
+    <changeSet id="15_change_column_size_product_variant" author="Quang Nguyen">
+        <dropColumn tableName="product_variant" columnName="size"/>
+        <addColumn tableName="product_variant">
+            <column name="size_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <addForeignKeyConstraint baseTableName="product_variant"
+                                 baseColumnNames="size_id"
+                                 referencedTableName="size"
+                                 referencedColumnNames="size_id"
+                                 constraintName="fk_product_variant_size"
+        />
+    </changeSet>
+
 </databaseChangeLog>
