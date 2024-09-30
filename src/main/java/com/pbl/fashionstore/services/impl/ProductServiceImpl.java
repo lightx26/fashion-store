@@ -1,9 +1,6 @@
 package com.pbl.fashionstore.services.impl;
 
-import com.pbl.fashionstore.dtos.dto.ProductDetailsDTO;
-import com.pbl.fashionstore.dtos.dto.ProductImageDTO;
-import com.pbl.fashionstore.dtos.dto.ProductOverviewDTO;
-import com.pbl.fashionstore.dtos.dto.VariantTypesDTO;
+import com.pbl.fashionstore.dtos.dto.*;
 import com.pbl.fashionstore.dtos.request.ProductFilterCriteriaParams;
 import com.pbl.fashionstore.dtos.response.CountResponse;
 import com.pbl.fashionstore.dtos.response.ProductDetailsResponse;
@@ -59,11 +56,10 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductDetailsResponse getProductById(Long productId) {
-        ProductDetailsDTO productDetailsDTO = productRepository.findProductDetailsById(productId);
-
-        if (productDetailsDTO == null) {
-            throw new EntityNotFoundException("Product not found");
-        }
+        ProductDetailsDTO productDetailsDTO = productRepository.findProductDetailsById(productId)
+                .orElseThrow(
+                        () -> new EntityNotFoundException("Product not found")
+                );
 
         productDetailsDTO.setWatchersCount(productWatchingService.countWatchers(productId));
         VariantTypesDTO variantTypesDTO = productVariantRepository.findProductVariantsByProductId(productId);
@@ -79,6 +75,24 @@ public class ProductServiceImpl implements ProductService {
                 .productDetails(productDetailsDTO)
                 .variants(variantTypesDTO)
                 .build();
+    }
+
+    @Override
+    public ProductVariantDTO getProductVariant(Long productId, Long colorId, Long sizeId) {
+        ProductVariantDTO variantDTO = productVariantRepository.findProductVariantByFilter(productId, colorId, sizeId)
+                .orElseThrow(
+                        () -> new EntityNotFoundException("Product variant not found")
+                );
+
+        List<ProductImageDTO> images = productImageRepository.findProductImagesByProductVariantId(variantDTO.getId()).stream().map(
+                productImage -> ProductImageDTO.builder()
+                        .imageUrl(productImage.getImageUrl())
+                        .position(productImage.getPosition())
+                        .build()
+        ).toList();
+        variantDTO.setImages(images);
+
+        return variantDTO;
     }
 
     private boolean isLastByFilters(ProductOverviewDTO lastElement, ProductFilterCriteriaParams currentFilter) {

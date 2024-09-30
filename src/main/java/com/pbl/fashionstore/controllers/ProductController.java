@@ -88,4 +88,13 @@ public class ProductController {
 
         return ResponseEntity.ok(productService.getProductById(productId));
     }
+
+    @GetMapping("{productId}/variants")
+    public ResponseEntity<?> getProductVariant(
+            @PathVariable Long productId,
+            @RequestParam Long colorId,
+            @RequestParam Long sizeId
+    ) {
+        return ResponseEntity.ok(productService.getProductVariant(productId, colorId, sizeId));
+    }
 }

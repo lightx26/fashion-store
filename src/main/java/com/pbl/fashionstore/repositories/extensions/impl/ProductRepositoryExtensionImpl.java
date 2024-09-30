@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 public class ProductRepositoryExtensionImpl implements ProductRepositoryExtension {
 
@@ -215,7 +216,7 @@ public class ProductRepositoryExtensionImpl implements ProductRepositoryExtensio
     }
 
     @Override
-    public ProductDetailsDTO findProductDetailsById(Long id) {
+    public Optional<ProductDetailsDTO> findProductDetailsById(Long id) {
 
         String sql = "SELECT p.product_id, p.name, p.description, p.price, avg(pr.rating), count(pr), d.discount_type, d.discount_value, d.end_date " +
                 "FROM product p " +
@@ -240,7 +241,7 @@ public class ProductRepositoryExtensionImpl implements ProductRepositoryExtensio
         try {
             result = (Object[]) query.getSingleResult();
         } catch (NoResultException e) {
-            return null;
+            return Optional.empty();
         }
 
         BigDecimal priceSale = (BigDecimal) result[3];
@@ -248,7 +249,7 @@ public class ProductRepositoryExtensionImpl implements ProductRepositoryExtensio
             priceSale = DiscountCalculator.calculatePriceSale((BigDecimal) result[3], (BigDecimal) result[7], DiscountType.valueOf((String) result[6]));
         }
 
-        return ProductDetailsDTO.builder()
+        return Optional.of(ProductDetailsDTO.builder()
                 .id((Long) result[0])
                 .name((String) result[1])
                 .description((String) result[2])
@@ -257,7 +258,8 @@ public class ProductRepositoryExtensionImpl implements ProductRepositoryExtensio
                 .rating(result[4] != null ? ((BigDecimal) result[4]).setScale(1, RoundingMode.HALF_UP) : null)
                 .reviewCount(((Long) result[5]))
                 .discountExpiration((Instant) result[8])
-                .build();
+                .build()
+        );
     }
 
     @Getter
