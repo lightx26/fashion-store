@@ -23,14 +23,14 @@ public class ProductController {
 
     @GetMapping
     public ResponseEntity<?> getProducts(
-            @RequestParam Long categoryId,
+            @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) List<Long> colorIds,
             @RequestParam(required = false) List<Long> sizeIds,
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) List<Long> styleIds,
             @RequestParam(required = false) SortOption sortOption,
-            @RequestParam(required = false) Object cursorValue,
+            @RequestParam(required = false) String cursorValue,
             @RequestParam(required = false) Long cursorId,
             @RequestParam(defaultValue = "12") Integer limit
     ) {
@@ -59,9 +59,9 @@ public class ProductController {
         );
     }
 
-    @GetMapping("/counts")
+    @GetMapping("/count")
     public ResponseEntity<?> getProductsCount(
-            @RequestParam Long categoryId,
+            @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) List<Long> colorIds,
             @RequestParam(required = false) List<Long> sizeIds,
             @RequestParam(required = false) BigDecimal minPrice,

@@ -9,6 +9,9 @@ import com.pbl.fashionstore.utils.DiscountCalculator;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -24,8 +27,9 @@ public class ProductRepositoryExtensionImpl implements ProductRepositoryExtensio
     public List<ProductOverviewDTO> findProductsByFilters(ProductFilterCriteriaParams filterParams) {
 
         String sql = "select p.product_id, p.name, p.thumbnail_url, p.price, p.created_at, d.discount_value, d.discount_type, " +
-                "(select avg(rating) from product_review pr where pr.product_id = p.product_id) as rating " +
+                "AVG(pr.rating) as rating " +
                 "from product p " +
+                "left join product_review pr on p.product_id = pr.product_id " +
                 "left join " +
                 "(select pd0.product_id, d0.discount_value, d0.discount_type " +
                 "from product_discount pd0 " +
@@ -33,11 +37,14 @@ public class ProductRepositoryExtensionImpl implements ProductRepositoryExtensio
                 "on pd0.discount_offer_id = d0.discount_offer_id " +
                 "where d0.start_date < :now and d0.end_date > :now) " +
                 "as d " +
-                "on p.product_id = d.product_id " +
-                "where p.category_id = :categoryId ";
+                "on p.product_id = d.product_id ";
 
-        sql = sql + constructConditionStatement(filterParams) + constructOrderStatement(filterParams);
+        ConditionStatement conditionStatement = constructConditionStatement(filterParams);
 
+        sql = sql + conditionStatement.getWhereStatement();
+        sql = sql + " group by p.product_id, p.name, p.thumbnail_url, p.price, p.created_at, d.discount_value, d.discount_type ";
+        sql = sql + conditionStatement.getHavingStatement();
+        sql = sql + constructOrderStatement(filterParams);
         sql = sql + " fetch first :limit rows only";
 
         Query query = entityManager.createNativeQuery(sql, Object[].class);
@@ -75,55 +82,78 @@ public class ProductRepositoryExtensionImpl implements ProductRepositoryExtensio
 
     @Override
     public Long countProductsByFilters(ProductFilterCriteriaParams filterParams) {
-        String sql = "select count(*) from product p where p.category_id = :categoryId " + constructConditionStatement(filterParams);
+        String sql = "select count(*) from product p ";
 
-        Query query = entityManager.createNativeQuery(sql, Long.class);
-        setFilterParameters(query, filterParams);
+        ConditionStatement conditionStatement = constructConditionStatement(filterParams);
 
-        return (Long) query.getSingleResult();
+        if (!conditionStatement.getHavingStatement().equals("having true ")) {
+            sql = sql + "left join product_review pr on p.product_id = pr.product_id " +
+                    conditionStatement.getWhereStatement() +
+                    " group by p.product_id " +
+                    conditionStatement.getHavingStatement();
+
+            Query query = entityManager.createNativeQuery(sql, Long.class);
+            setFilterParameters(query, filterParams);
+
+            return (long) query.getResultList().size();
+        } else {
+            sql = sql + conditionStatement.getWhereStatement();
+
+            Query query = entityManager.createNativeQuery(sql, Long.class);
+            setFilterParameters(query, filterParams);
+
+            return (Long) query.getSingleResult();
+        }
     }
 
     public boolean isLastByFilters(ProductFilterCriteriaParams filterParams) {
         return countProductsByFilters(filterParams) == 0;
     }
 
-    private String constructConditionStatement(ProductFilterCriteriaParams filterParams) {
-        String condition = "";
+    private ConditionStatement constructConditionStatement(ProductFilterCriteriaParams filterParams) {
+        String whereStatement = "where true ";
+        String havingStatement = "having true ";
+
+        if (filterParams.getCategoryId() != null) {
+            whereStatement = whereStatement + "and p.category_id = :categoryId ";
+        }
 
         if (filterParams.getSizeIds() != null && !filterParams.getSizeIds().isEmpty()
                 && filterParams.getColorIds() != null && !filterParams.getColorIds().isEmpty()) {
-            condition = condition + "and p.product_id in (select product_id from product_variant where color_id in :colorIds and size_id in :sizeIds) ";
+            whereStatement = whereStatement + "and p.product_id in (select product_id from product_variant where color_id in :colorIds and size_id in :sizeIds) ";
         } else if (filterParams.getColorIds() != null && !filterParams.getColorIds().isEmpty()) {
-            condition = condition + "and p.product_id in (select product_id from product_variant where color_id in :colorIds) ";
+            whereStatement = whereStatement + "and p.product_id in (select product_id from product_variant where color_id in :colorIds) ";
         } else if (filterParams.getSizeIds() != null && !filterParams.getSizeIds().isEmpty()) {
-            condition = condition + "and p.product_id in (select product_id from product_variant where size_id in :sizeIds) ";
+            whereStatement = whereStatement + "and p.product_id in (select product_id from product_variant where size_id in :sizeIds) ";
         }
 
         if (filterParams.getMinPrice() != null && filterParams.getMaxPrice() != null) {
-            condition = condition + "and p.price between :minPrice and :maxPrice ";
+            whereStatement = whereStatement + "and p.price between :minPrice and :maxPrice ";
         } else if (filterParams.getMinPrice() != null) {
-            condition = condition + "and p.price >= :minPrice ";
+            whereStatement = whereStatement + "and p.price >= :minPrice ";
         }
 
         if (filterParams.getStyleIds() != null && !filterParams.getStyleIds().isEmpty()) {
-            condition = condition + "and p.product_id in (select product_id from style_product where style_id in :styleIds) ";
+            whereStatement = whereStatement + "and p.product_id in (select product_id from style_product where style_id in :styleIds) ";
         }
 
         if (filterParams.getSortOption() == null) {
             if (filterParams.getCursorId() != null) {
-                condition = condition + "and p.product_id < :cursorId ";
+                whereStatement = whereStatement + "and p.product_id < :cursorId ";
             }
         } else if (filterParams.getSortOption().equals(SortOption.NEWEST)) {
             if (filterParams.getCursorValue() != null) {
-                condition = condition + "and (p.created_at < :cursorValue or (p.created_at = :cursorValue and p.product_id < :cursorId)) ";
+                whereStatement = whereStatement + "and (p.created_at < :cursorValue or (p.created_at = :cursorValue and p.product_id < :cursorId)) ";
             }
         } else if (filterParams.getSortOption().equals(SortOption.RATING)) {
             if (filterParams.getCursorValue() != null) {
-                condition = condition + "and (rating < :cursorValue or (rating = :cursorValue and p.product_id < :cursorId)) ";
+                havingStatement = havingStatement + "and (AVG(rating) < :cursorValue or (AVG(rating) = :cursorValue and p.product_id < :cursorId) or AVG(rating) is null) ";
+            } else if (filterParams.getCursorId() != null) {
+                havingStatement = havingStatement + "and (AVG(rating) is null and p.product_id < :cursorId) ";
             }
         }
 
-        return condition;
+        return new ConditionStatement(whereStatement, havingStatement);
     }
 
     private String constructOrderStatement(ProductFilterCriteriaParams filterParams) {
@@ -131,16 +161,18 @@ public class ProductRepositoryExtensionImpl implements ProductRepositoryExtensio
         if (filterParams.getSortOption() == null) {
             order = "order by p.product_id desc ";
         } else if (filterParams.getSortOption().equals(SortOption.NEWEST)) {
-            order = "order by p.created_at desc ";
+            order = "order by p.created_at desc, p.product_id desc ";
         } else if (filterParams.getSortOption().equals(SortOption.RATING)) {
-            order = "order by rating desc ";
+            order = "order by rating desc NULLS LAST, p.product_id desc ";
         }
         return order;
     }
 
     private void setFilterParameters(Query query, ProductFilterCriteriaParams filterParams) {
 
-        query.setParameter("categoryId", filterParams.getCategoryId());
+        if (filterParams.getCategoryId() != null) {
+            query.setParameter("categoryId", filterParams.getCategoryId());
+        }
 
         if (filterParams.getSizeIds() != null && !filterParams.getSizeIds().isEmpty()) {
             query.setParameter("sizeIds", filterParams.getSizeIds());
@@ -167,7 +199,23 @@ public class ProductRepositoryExtensionImpl implements ProductRepositoryExtensio
         }
 
         if (filterParams.getCursorValue() != null) {
-            query.setParameter("cursorValue", filterParams.getCursorValue());
+            if (filterParams.getSortOption() != null) {
+                if (filterParams.getSortOption().equals(SortOption.NEWEST)) {
+                    Instant instant = Instant.parse((String) filterParams.getCursorValue());
+                    query.setParameter("cursorValue", instant);
+                } else if (filterParams.getSortOption().equals(SortOption.RATING)) {
+                    BigDecimal rating = new BigDecimal(String.valueOf(filterParams.getCursorValue()));
+                    query.setParameter("cursorValue", rating);
+                }
+            }
         }
+    }
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    private static class ConditionStatement {
+        private String whereStatement;
+        private String havingStatement;
     }
 }
