@@ -1,26 +1,39 @@
 package com.pbl.fashionstore.services.impl;
 
+import com.pbl.fashionstore.dtos.dto.ProductDetailsDTO;
+import com.pbl.fashionstore.dtos.dto.ProductImageDTO;
 import com.pbl.fashionstore.dtos.dto.ProductOverviewDTO;
+import com.pbl.fashionstore.dtos.dto.VariantTypesDTO;
 import com.pbl.fashionstore.dtos.request.ProductFilterCriteriaParams;
 import com.pbl.fashionstore.dtos.response.CountResponse;
+import com.pbl.fashionstore.dtos.response.ProductDetailsResponse;
 import com.pbl.fashionstore.dtos.response.ProductPageResponse;
 import com.pbl.fashionstore.enums.SortOption;
+import com.pbl.fashionstore.exceptions.EntityNotFoundException;
+import com.pbl.fashionstore.repositories.ProductImageRepository;
 import com.pbl.fashionstore.repositories.ProductRepository;
+import com.pbl.fashionstore.repositories.ProductVariantRepository;
 import com.pbl.fashionstore.services.ProductService;
+import com.pbl.fashionstore.services.ProductWatchingService;
+import com.pbl.fashionstore.utils.ProductFilterValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 
 import java.util.List;
 
-
 @Service
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
+    private final ProductVariantRepository productVariantRepository;
+    private final ProductImageRepository productImageRepository;
+    private final ProductWatchingService productWatchingService;
 
     public ProductPageResponse getProductsByFilter(ProductFilterCriteriaParams filterParams) {
+
+        ProductFilterValidator.validateFilter(filterParams);
 
         List<ProductOverviewDTO> productDTOs = productRepository.findProductsByFilters(filterParams);
 
@@ -41,6 +54,30 @@ public class ProductServiceImpl implements ProductService {
     public CountResponse countProductsByFilter(ProductFilterCriteriaParams filterCriteria) {
         return CountResponse.builder()
                 .totalElements(productRepository.countProductsByFilters(filterCriteria))
+                .build();
+    }
+
+    @Override
+    public ProductDetailsResponse getProductById(Long productId) {
+        ProductDetailsDTO productDetailsDTO = productRepository.findProductDetailsById(productId);
+
+        if (productDetailsDTO == null) {
+            throw new EntityNotFoundException("Product not found");
+        }
+
+        productDetailsDTO.setWatchersCount(productWatchingService.countWatchers(productId));
+        VariantTypesDTO variantTypesDTO = productVariantRepository.findProductVariantsByProductId(productId);
+        List<ProductImageDTO> images = productImageRepository.findProductImagesByProductVariantId(variantTypesDTO.getDefaultVariant().getId()).stream().map(
+                productImage -> ProductImageDTO.builder()
+                        .imageUrl(productImage.getImageUrl())
+                        .position(productImage.getPosition())
+                        .build()
+        ).toList();
+        variantTypesDTO.getDefaultVariant().setImages(images);
+
+        return ProductDetailsResponse.builder()
+                .productDetails(productDetailsDTO)
+                .variants(variantTypesDTO)
                 .build();
     }
 

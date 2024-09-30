@@ -1,12 +1,13 @@
 package com.pbl.fashionstore.repositories.extensions.impl;
 
-import com.pbl.fashionstore.dtos.dto.ProductOverviewDTO;
+import com.pbl.fashionstore.dtos.dto.*;
 import com.pbl.fashionstore.dtos.request.ProductFilterCriteriaParams;
 import com.pbl.fashionstore.enums.DiscountType;
 import com.pbl.fashionstore.enums.SortOption;
 import com.pbl.fashionstore.repositories.extensions.ProductRepositoryExtension;
 import com.pbl.fashionstore.utils.DiscountCalculator;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 import lombok.AllArgsConstructor;
@@ -131,6 +132,8 @@ public class ProductRepositoryExtensionImpl implements ProductRepositoryExtensio
             whereStatement = whereStatement + "and p.price between :minPrice and :maxPrice ";
         } else if (filterParams.getMinPrice() != null) {
             whereStatement = whereStatement + "and p.price >= :minPrice ";
+        } else if (filterParams.getMaxPrice() != null) {
+            whereStatement = whereStatement + "and p.price <= :maxPrice ";
         }
 
         if (filterParams.getStyleIds() != null && !filterParams.getStyleIds().isEmpty()) {
@@ -211,11 +214,60 @@ public class ProductRepositoryExtensionImpl implements ProductRepositoryExtensio
         }
     }
 
+    @Override
+    public ProductDetailsDTO findProductDetailsById(Long id) {
+
+        String sql = "SELECT p.product_id, p.name, p.description, p.price, avg(pr.rating), count(pr), d.discount_type, d.discount_value, d.end_date " +
+                "FROM product p " +
+                "LEFT JOIN product_review pr " +
+                "ON p.product_id = pr.product_id " +
+                "LEFT JOIN " +
+                "(SELECT pd0.product_id, d0.discount_value, d0.discount_type, d0.end_date " +
+                "from product_discount pd0  " +
+                "INNER JOIN discount_offer d0 " +
+                "on pd0.discount_offer_id = d0.discount_offer_id " +
+                "where d0.start_date < :now and d0.end_date > :now) as d " +
+                "ON p.product_id = d.product_id " +
+                "WHERE p.product_id = :productId " +
+                "GROUP BY p.product_id, d.discount_type, d.discount_value, d.end_date " +
+                "FETCH FIRST 1 ROWS ONLY";
+
+        Query query = entityManager.createNativeQuery(sql, Object[].class);
+        query.setParameter("now", Instant.now());
+        query.setParameter("productId", id);
+
+        Object[] result;
+        try {
+            result = (Object[]) query.getSingleResult();
+        } catch (NoResultException e) {
+            return null;
+        }
+
+        BigDecimal priceSale = (BigDecimal) result[3];
+        if (result[6] != null) {
+            priceSale = DiscountCalculator.calculatePriceSale((BigDecimal) result[3], (BigDecimal) result[7], DiscountType.valueOf((String) result[6]));
+        }
+
+        return ProductDetailsDTO.builder()
+                .id((Long) result[0])
+                .name((String) result[1])
+                .description((String) result[2])
+                .price((BigDecimal) result[3])
+                .priceSale(priceSale)
+                .rating(result[4] != null ? ((BigDecimal) result[4]).setScale(1, RoundingMode.HALF_UP) : null)
+                .reviewCount(((Long) result[5]))
+                .discountExpiration((Instant) result[8])
+                .build();
+    }
+
     @Getter
     @Setter
     @AllArgsConstructor
-    private static class ConditionStatement {
+    static
+    class ConditionStatement {
         private String whereStatement;
         private String havingStatement;
     }
 }
+
+

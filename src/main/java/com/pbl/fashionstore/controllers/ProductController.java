@@ -4,13 +4,12 @@ import com.pbl.fashionstore.dtos.request.ProductFilterCriteriaParams;
 import com.pbl.fashionstore.dtos.response.CustomListResponse;
 import com.pbl.fashionstore.enums.SortOption;
 import com.pbl.fashionstore.services.ProductService;
+import com.pbl.fashionstore.services.ProductWatchingService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -20,6 +19,7 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductWatchingService productWatchingService;
 
     @GetMapping
     public ResponseEntity<?> getProducts(
@@ -78,5 +78,14 @@ public class ProductController {
                 .build();
 
         return ResponseEntity.ok(productService.countProductsByFilter(criteria));
+    }
+
+    @GetMapping("/{productId}")
+    public ResponseEntity<?> getProductById(@PathVariable Long productId, HttpServletRequest request) {
+
+        HttpSession session = request.getSession();
+        productWatchingService.addWatcher(productId, session.getId());
+
+        return ResponseEntity.ok(productService.getProductById(productId));
     }
 }
