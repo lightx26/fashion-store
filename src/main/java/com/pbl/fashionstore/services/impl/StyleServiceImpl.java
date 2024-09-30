@@ -2,6 +2,7 @@ package com.pbl.fashionstore.services.impl;
 
 import com.pbl.fashionstore.dtos.dto.StyleDTO;
 import com.pbl.fashionstore.dtos.response.CustomListResponse;
+import com.pbl.fashionstore.mappers.StyleMapper;
 import com.pbl.fashionstore.repositories.StyleRepository;
 import com.pbl.fashionstore.services.StyleService;
 import lombok.RequiredArgsConstructor;
@@ -13,13 +14,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StyleServiceImpl implements StyleService {
     private final StyleRepository styleRepository;
+    private final StyleMapper styleMapper;
 
     public CustomListResponse<StyleDTO> getAllStyles() {
         List<StyleDTO> styles = styleRepository.findAll().stream()
-                .map(style -> StyleDTO.builder()
-                        .id(style.getId())
-                        .name(style.getName())
-                        .build())
+                .map(styleMapper::toDTO)
                 .toList();
 
         return CustomListResponse.<StyleDTO>builder()

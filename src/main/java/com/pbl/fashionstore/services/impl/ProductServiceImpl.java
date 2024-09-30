@@ -7,6 +7,7 @@ import com.pbl.fashionstore.dtos.response.ProductDetailsResponse;
 import com.pbl.fashionstore.dtos.response.ProductPageResponse;
 import com.pbl.fashionstore.enums.SortOption;
 import com.pbl.fashionstore.exceptions.EntityNotFoundException;
+import com.pbl.fashionstore.mappers.ProductImageMapper;
 import com.pbl.fashionstore.repositories.ProductImageRepository;
 import com.pbl.fashionstore.repositories.ProductRepository;
 import com.pbl.fashionstore.repositories.ProductVariantRepository;
@@ -27,6 +28,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductVariantRepository productVariantRepository;
     private final ProductImageRepository productImageRepository;
     private final ProductWatchingService productWatchingService;
+    private final ProductImageMapper imageMapper;
 
     public ProductPageResponse getProductsByFilter(ProductFilterCriteriaParams filterParams) {
 
@@ -57,18 +59,12 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductDetailsResponse getProductById(Long productId) {
         ProductDetailsDTO productDetailsDTO = productRepository.findProductDetailsById(productId)
-                .orElseThrow(
-                        () -> new EntityNotFoundException("Product not found")
-                );
+                .orElseThrow(() -> new EntityNotFoundException("Product not found"));
 
         productDetailsDTO.setWatchersCount(productWatchingService.countWatchers(productId));
         VariantTypesDTO variantTypesDTO = productVariantRepository.findProductVariantsByProductId(productId);
-        List<ProductImageDTO> images = productImageRepository.findProductImagesByProductVariantId(variantTypesDTO.getDefaultVariant().getId()).stream().map(
-                productImage -> ProductImageDTO.builder()
-                        .imageUrl(productImage.getImageUrl())
-                        .position(productImage.getPosition())
-                        .build()
-        ).toList();
+        List<ProductImageDTO> images = productImageRepository.findProductImagesByProductVariantId(variantTypesDTO.getDefaultVariant().getId()).stream()
+                .map(imageMapper::toDTO).toList();
         variantTypesDTO.getDefaultVariant().setImages(images);
 
         return ProductDetailsResponse.builder()
@@ -80,16 +76,10 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductVariantDTO getProductVariant(Long productId, Long colorId, Long sizeId) {
         ProductVariantDTO variantDTO = productVariantRepository.findProductVariantByFilter(productId, colorId, sizeId)
-                .orElseThrow(
-                        () -> new EntityNotFoundException("Product variant not found")
-                );
+                .orElseThrow(() -> new EntityNotFoundException("Product variant not found"));
 
-        List<ProductImageDTO> images = productImageRepository.findProductImagesByProductVariantId(variantDTO.getId()).stream().map(
-                productImage -> ProductImageDTO.builder()
-                        .imageUrl(productImage.getImageUrl())
-                        .position(productImage.getPosition())
-                        .build()
-        ).toList();
+        List<ProductImageDTO> images = productImageRepository.findProductImagesByProductVariantId(variantDTO.getId())
+                .stream().map(imageMapper::toDTO).toList();
         variantDTO.setImages(images);
 
         return variantDTO;
