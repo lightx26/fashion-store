@@ -7,6 +7,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
-public class ProductCountResponse {
-    private Long totalProducts;
+public class CountResponse {
+    private Long totalElements;
 }

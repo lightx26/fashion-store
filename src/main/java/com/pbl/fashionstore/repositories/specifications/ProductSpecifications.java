@@ -7,6 +7,7 @@ import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class ProductSpecifications {
@@ -53,7 +54,7 @@ public class ProductSpecifications {
         };
     }
 
-    public static Specification<Product> hasPriceInRange(Double minPrice, Double maxPrice) {
+    public static Specification<Product> hasPriceInRange(BigDecimal minPrice, BigDecimal maxPrice) {
         return (root, query, cb) -> {
             if (minPrice == null && maxPrice == null) {
                 return null;

@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 @Entity
@@ -17,15 +18,12 @@ public class DiscountOffer {
     @Column(name = "discount_offer_id")
     private Long id;
 
-    @Column(name = "product_id")
-    private Long productId;
-
     @Column(name = "discount_type")
     @Enumerated(EnumType.STRING)
     private DiscountType discountType;
 
     @Column(name = "discount_value")
-    private Double discountValue;
+    private BigDecimal discountValue;
 
     @Column(name = "start_date")
     private Instant startDate;

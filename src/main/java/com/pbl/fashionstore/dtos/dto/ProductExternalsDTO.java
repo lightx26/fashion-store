@@ -1,21 +1,18 @@
 package com.pbl.fashionstore.dtos.dto;
 
+import com.pbl.fashionstore.enums.DiscountType;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 
 @Getter
 @Setter
 @Builder
-public class ProductOverviewDTO {
+public class ProductExternalsDTO {
     private Long id;
-    private String name;
-    private String thumbnailUrl;
-    private BigDecimal price;
-    private BigDecimal priceSale;
+    private BigDecimal discountValue;
+    private DiscountType discountType;
     private BigDecimal rating;
-    private Instant createdAt;
 }

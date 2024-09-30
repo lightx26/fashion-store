@@ -12,6 +12,5 @@ import java.util.List;
 @Builder
 public class ProductPageResponse {
     private boolean isLast;
-    private long totalProducts;
     private List<ProductOverviewDTO> content;
 }

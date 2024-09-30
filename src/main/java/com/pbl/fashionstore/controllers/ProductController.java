@@ -1,6 +1,8 @@
 package com.pbl.fashionstore.controllers;
 
 import com.pbl.fashionstore.dtos.request.ProductFilterCriteriaParams;
+import com.pbl.fashionstore.dtos.response.CustomListResponse;
+import com.pbl.fashionstore.enums.SortOption;
 import com.pbl.fashionstore.services.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -23,23 +26,57 @@ public class ProductController {
             @RequestParam Long categoryId,
             @RequestParam(required = false) List<Long> colorIds,
             @RequestParam(required = false) List<Long> sizeIds,
-            @RequestParam(required = false) Double minPrice,
-            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) List<Long> styleIds,
+            @RequestParam(required = false) SortOption sortOption,
+            @RequestParam(required = false) Object cursorValue,
             @RequestParam(required = false) Long cursorId,
             @RequestParam(defaultValue = "12") Integer limit
     ) {
-        ProductFilterCriteriaParams criteria = new ProductFilterCriteriaParams(
-                categoryId,
-                colorIds,
-                sizeIds,
-                minPrice,
-                maxPrice,
-                styleIds,
-                cursorId,
-                limit
-        );
+        ProductFilterCriteriaParams criteria = ProductFilterCriteriaParams.builder()
+                .categoryId(categoryId)
+                .colorIds(colorIds)
+                .sizeIds(sizeIds)
+                .minPrice(minPrice)
+                .maxPrice(maxPrice)
+                .styleIds(styleIds)
+                .sortOption(sortOption)
+                .cursorValue(cursorValue)
+                .cursorId(cursorId)
+                .limit(limit)
+                .build();
 
         return ResponseEntity.ok(productService.getProductsByFilter(criteria));
+    }
+
+    @GetMapping("/sort-options")
+    public ResponseEntity<?> getSortOptions() {
+        return ResponseEntity.ok(
+                CustomListResponse.builder()
+                        .content(List.of(SortOption.values()))
+                        .build()
+        );
+    }
+
+    @GetMapping("/counts")
+    public ResponseEntity<?> getProductsCount(
+            @RequestParam Long categoryId,
+            @RequestParam(required = false) List<Long> colorIds,
+            @RequestParam(required = false) List<Long> sizeIds,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) List<Long> styleIds
+    ) {
+        ProductFilterCriteriaParams criteria = ProductFilterCriteriaParams.builder()
+                .categoryId(categoryId)
+                .colorIds(colorIds)
+                .sizeIds(sizeIds)
+                .minPrice(minPrice)
+                .maxPrice(maxPrice)
+                .styleIds(styleIds)
+                .build();
+
+        return ResponseEntity.ok(productService.countProductsByFilter(criteria));
     }
 }
